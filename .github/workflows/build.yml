@@ -58,3 +58,16 @@ jobs:
             ./package.json
             ./package-lock.json
           retention-days: 1
+      ## if artifact does not exist and build is successful, tag the commit with the version number
+      - name: Tag commit
+        if: steps.check_artifact.outputs.result != 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/v${{ steps.get_version.outputs.version }}',
+              sha: context.sha
+            })
