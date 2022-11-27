@@ -65,9 +65,26 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            github.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'refs/tags/v${{ steps.get_version.outputs.version }}',
-              sha: context.sha
+            const version = '${{ steps.get_version.outputs.version }}'
+            const tag = `v${version}`
+            const commit = context.sha
+            const owner = context.repo.owner
+            const repo = context.repo.repo
+            const tagExists = await github.rest.git.getRef({
+              owner,
+              repo,
+              ref: `tags/${tag}`,
             })
+            .then(() => true)
+            .catch(() => false)
+            if (tagExists) {
+              console.log(`Tag ${tag} already exists`)
+              return
+            }
+            await github.rest.git.createRef({
+              owner,
+              repo,
+              ref: `refs/tags/${tag}`,
+              sha: commit,
+            })
+            console.log(`Tagged ${commit} with ${tag}`)
