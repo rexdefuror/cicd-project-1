@@ -22,10 +22,12 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const { data: { total_count } } = await github.search.code({
-              q: `repo:${{ github.repository }} filename:cicd-project-1_v${{ steps.get_version.outputs.version }}.zip`
+            const artifact = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
             })
-            return total_count
+            const artifactExists = artifact.data.artifacts.some((artifact) => artifact.name === 'cicd-project-1_v${{ steps.get_version.outputs.version }}')
+            return artifactExists
       ## if artifact exists, skip build and log message
       - name: Skip build
         if: steps.check_artifact.outputs.result > 0
