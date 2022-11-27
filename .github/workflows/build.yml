@@ -12,10 +12,51 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - uses: bbonkr/get-version-action@v1.0.4
+      - uses: bbonkr/get-version-action@v1.0.4 #steps.get_version.outputs.version
         id: get_version
         with:
           project: "./package.json"
-      - name: logging
+      ## check if artifact exists
+      - name: Check if artifact exists
+        id: check_artifact
+        uses: actions/github-script@v3
+        with:
+          script: |
+            const { data: { total_count } } = await github.search.code({
+              q: `repo:${{ github.repository }} filename:cicd-project-1_v${{ steps.get_version.outputs.version }}.zip`
+            })
+            return total_count
+      ## if artifact exists, skip build and log message
+      - name: Skip build
+        if: steps.check_artifact.outputs.result > 0
         run: |
-          echo "Version=${{ steps.get_version.outputs.version }}"
+          echo "Artifact already exists"
+      ## if artifact does not exist, build and upload artifact
+      - name: Use Node.js 18
+        if: steps.check_artifact.outputs.result == 0
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        if: steps.check_artifact.outputs.result == 0
+        run: npm ci
+
+      - name: Build app
+        if: steps.check_artifact.outputs.result == 0
+        run: npm run build
+
+      - name: Run tests
+        if: steps.check_artifact.outputs.result == 0
+        run: npm run test:ci -- -u
+
+      - name: Upload artifact
+        if: steps.check_artifact.outputs.result == 0
+        uses: actions/upload-artifact@v2
+        with:
+          name: cicd-project-1_v${{ steps.get_version.outputs.version }}
+          path: |
+            ./.next
+            ./package.json
+            ./package-lock.json
+          retention-days: 1
