@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - hotfix/*
 
 jobs:
   build:
@@ -57,7 +58,7 @@ jobs:
             ./.next
             ./package.json
             ./package-lock.json
-          retention-days: 1
+          retention-days: 15
       ## if artifact does not exist and build is successful, tag the commit with the version number
       - name: Tag commit
         if: steps.check_artifact.outputs.result != 'true'
